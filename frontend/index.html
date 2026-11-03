@@ -1,0 +1,245 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SmartCampus</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: #f1f5f9;
+            color: #1e293b;
+        }
+
+        header {
+            background: #0f172a;
+            color: white;
+            padding: 25px;
+            text-align: center;
+        }
+
+        header h1 {
+            margin: 0;
+        }
+
+        header p {
+            color: #cbd5e1;
+        }
+
+        main {
+            max-width: 1100px;
+            margin: 30px auto;
+            padding: 20px;
+        }
+
+        .section {
+            background: white;
+            padding: 25px;
+            margin-bottom: 25px;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px #00000010;
+        }
+
+        .rooms {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 20px;
+        }
+
+        .room {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 20px;
+        }
+
+        .room h3 {
+            color: #2563eb;
+        }
+
+        button {
+            background: #2563eb;
+            color: white;
+            border: none;
+            padding: 12px 18px;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background: #1d4ed8;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            padding: 12px;
+            border-bottom: 1px solid #e2e8f0;
+            text-align: left;
+        }
+
+        th {
+            background: #f8fafc;
+        }
+
+        .status {
+            margin-bottom: 20px;
+            font-weight: bold;
+        }
+
+        .error {
+            color: #dc2626;
+        }
+
+        footer {
+            text-align: center;
+            padding: 20px;
+            color: #64748b;
+        }
+    </style>
+</head>
+
+<body>
+
+<header>
+    <h1>SmartCampus</h1>
+    <p>Gestión inteligente de aulas y reservas universitarias</p>
+</header>
+
+<main>
+
+    <div class="section">
+        <h2>Estado de la aplicación</h2>
+        <p id="status" class="status">Comprobando conexión...</p>
+        <button onclick="loadData()">Actualizar información</button>
+    </div>
+
+    <div class="section">
+        <h2>Aulas disponibles</h2>
+        <div id="rooms" class="rooms">
+            Cargando aulas...
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>Reservas</h2>
+        <div style="overflow-x:auto">
+            <table>
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Aula</th>
+                        <th>Usuario</th>
+                        <th>Fecha</th>
+                        <th>Inicio</th>
+                        <th>Fin</th>
+                    </tr>
+                </thead>
+                <tbody id="bookings">
+                    <tr>
+                        <td colspan="6">Cargando reservas...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</main>
+
+<footer>
+    SmartCampus Solutions - Práctica de Despliegue y Monitorización en la Nube
+</footer>
+
+<script>
+    async function loadData() {
+        const status = document.getElementById("status");
+
+        try {
+            const healthResponse = await fetch("/api/health");
+
+            if (!healthResponse.ok) {
+                throw new Error("Backend no disponible");
+            }
+
+            status.textContent = "Conectado correctamente con el backend";
+            status.className = "status";
+
+            const roomsResponse = await fetch("/api/rooms");
+            const rooms = await roomsResponse.json();
+
+            const roomsContainer = document.getElementById("rooms");
+
+            roomsContainer.innerHTML = "";
+
+            rooms.forEach(room => {
+                const card = document.createElement("div");
+                card.className = "room";
+
+                const title = document.createElement("h3");
+                title.textContent = room.nombre;
+
+                const building = document.createElement("p");
+                building.textContent = "Edificio: " + room.edificio;
+
+                const capacity = document.createElement("p");
+                capacity.textContent = "Capacidad: " + room.capacidad + " personas";
+
+                const equipment = document.createElement("p");
+                equipment.textContent = "Equipamiento: " +
+                    room.equipamiento.join(", ");
+
+                card.append(title, building, capacity, equipment);
+                roomsContainer.appendChild(card);
+            });
+
+            const bookingsResponse = await fetch("/api/bookings");
+            const bookings = await bookingsResponse.json();
+
+            const bookingsContainer = document.getElementById("bookings");
+            bookingsContainer.innerHTML = "";
+
+            if (bookings.length === 0) {
+                bookingsContainer.innerHTML =
+                    '<tr><td colspan="6">No hay reservas registradas</td></tr>';
+            }
+
+            bookings.forEach(booking => {
+                const row = document.createElement("tr");
+
+                [
+                    booking.id,
+                    booking.aula_nombre,
+                    booking.usuario,
+                    booking.fecha,
+                    booking.hora_inicio,
+                    booking.hora_fin
+                ].forEach(value => {
+                    const cell = document.createElement("td");
+                    cell.textContent = value;
+                    row.appendChild(cell);
+                });
+
+                bookingsContainer.appendChild(row);
+            });
+
+        } catch (error) {
+            status.textContent = "Error de conexión: " + error.message;
+            status.className = "status error";
+        }
+    }
+
+    loadData();
+</script>
+
+</body>
+</html>
